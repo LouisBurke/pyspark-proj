@@ -21,10 +21,7 @@ def data_frame_to_dict(df):
     dict = {}
     df = df.toPandas()
 
-    # Traverse through each column
     for column in df.columns:
-        # Add key as column_name and
-        # value as list of column values
         dict[column] = df[column].values.tolist()
 
     return dict
