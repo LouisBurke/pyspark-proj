@@ -12,7 +12,7 @@ def deduplicate_frame(frame, column_name):
     return frame.drop_duplicates([column_name])
 
 
-def get_distinct_types():
+def get_distinct_types(spark):
     distinct_types = spark.sql("select distinct(type) from Events").collect()
     return [row.type for row in distinct_types]
 
@@ -27,12 +27,12 @@ def data_frame_to_dict(df):
     return dict
 
 
-def get_metrics(distinct_types_list):
+def get_metrics_dict(distinct_types_list):
     metrics = {}
     for type in distinct_types_list:
         metrics[type] = data_frame_to_dict(
             spark.sql(
-                ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
+                ' SELECT count(type) as type_count, datehour, domain, user[\'country\'] as country from Events \
                   where type = "{event_type}" \
                   group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
             )
@@ -41,14 +41,17 @@ def get_metrics(distinct_types_list):
     return metrics
 
 
-def show_metrics(distinct_types_list):
+def get_event_type_metrics(distinct_types_list):
+    metrics_data_frames = {}
+
     for type in distinct_types_list:
-        print(type)
-        spark.sql(
+        metrics_data_frames[type] = spark.sql(
             ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
               where type = "{event_type}" \
               group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
-        ).show()
+        ) 
+
+    return metrics_data_frames
 
 
 if __name__ == "__main__":
@@ -59,5 +62,10 @@ if __name__ == "__main__":
     deduplicated_data = deduplicate_frame(input_data, 'id')
     deduplicated_data.createOrReplaceTempView("Events")
 
-    distinct_types_list = get_distinct_types()
-    show_metrics(distinct_types_list)
+    distinct_types_list = get_distinct_types(spark)
+
+    metrics_list = get_event_type_metrics(distinct_types_list)
+
+    for metric in metrics_list.keys():
+        print(metric)
+        metrics_list[metric].show()
