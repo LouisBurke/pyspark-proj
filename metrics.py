@@ -26,6 +26,7 @@ def data_frame_to_dict(df):
 
     return dict
 
+
 def get_metrics(distinct_types_list):
     metrics = {}
     for type in distinct_types_list:
