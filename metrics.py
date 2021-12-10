@@ -27,7 +27,7 @@ def data_frame_to_dict(df):
     return dict
 
 
-def get_metrics_dict(distinct_types_list):
+def get_metrics_dict(distinct_types_list, spark):
     metrics = {}
     for type in distinct_types_list:
         metrics[type] = data_frame_to_dict(
@@ -41,7 +41,7 @@ def get_metrics_dict(distinct_types_list):
     return metrics
 
 
-def get_event_type_metrics(distinct_types_list):
+def get_event_type_metrics(distinct_types_list, spark):
     metrics_data_frames = {}
 
     for type in distinct_types_list:
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     distinct_types_list = get_distinct_types(spark)
 
-    metrics_list = get_event_type_metrics(distinct_types_list)
+    metrics_list = get_event_type_metrics(distinct_types_list, spark)
 
     for metric in metrics_list.keys():
         print(metric)
