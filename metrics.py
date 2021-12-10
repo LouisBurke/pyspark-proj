@@ -41,17 +41,12 @@ def get_metrics_dict(distinct_types_list, spark):
     return metrics
 
 
-def get_event_type_metrics(distinct_types_list, spark):
-    metrics_data_frames = {}
-
-    for type in distinct_types_list:
-        metrics_data_frames[type] = spark.sql(
-            ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
-              where type = "{event_type}" \
-              group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
-        ) 
-
-    return metrics_data_frames
+def get_event_type_metrics(type, spark):
+    return spark.sql(
+        ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
+          where type = "{event_type}" \
+          group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
+    )
 
 
 if __name__ == "__main__":
@@ -64,8 +59,6 @@ if __name__ == "__main__":
 
     distinct_types_list = get_distinct_types(spark)
 
-    metrics_list = get_event_type_metrics(distinct_types_list, spark)
-
-    for metric in metrics_list.keys():
-        print(metric)
-        metrics_list[metric].show()
+    for type in distinct_types_list:
+        print(type)
+        get_event_type_metrics(type, spark).show()
