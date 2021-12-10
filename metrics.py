@@ -17,30 +17,6 @@ def get_distinct_types(spark):
     return [row.type for row in distinct_types]
 
 
-def data_frame_to_dict(df):
-    dict = {}
-    df = df.toPandas()
-
-    for column in df.columns:
-        dict[column] = df[column].values.tolist()
-
-    return dict
-
-
-def get_metrics_dict(distinct_types_list, spark):
-    metrics = {}
-    for type in distinct_types_list:
-        metrics[type] = data_frame_to_dict(
-            spark.sql(
-                ' SELECT count(type) as type_count, datehour, domain, user[\'country\'] as country from Events \
-                  where type = "{event_type}" \
-                  group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
-            )
-        )
-
-    return metrics
-
-
 def get_event_type_metrics(type, spark):
     return spark.sql(
         ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
