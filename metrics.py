@@ -19,7 +19,7 @@ def get_distinct_types(spark):
 
 def get_event_type_metrics(type, spark):
     return spark.sql(
-        ' SELECT count(type), datehour, domain, user[\'country\'] as country from Events \
+        ' SELECT count(type) as type, datehour, domain, user[\'country\'] as country from Events \
           where type = "{event_type}" \
           group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
     )

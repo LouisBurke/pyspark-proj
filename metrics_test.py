@@ -13,7 +13,7 @@ import metrics
 
 class PySparkTest(unittest.TestCase):
 
-    ROW = {
+    ROWS = {
         "id": [
             "1c269ade-d654-4374-aafb-3deaebe5376a",
             "1c269ade-d654-4374-aafb-3deaebe5376b",
@@ -144,7 +144,7 @@ class PySparkTest(unittest.TestCase):
 
 
     def test_distinct_types(self):
-        data_pandas = pd.DataFrame(self.ROW)
+        data_pandas = pd.DataFrame(self.ROWS)
 
         # Turn the data into a Spark DataFrame
         data_spark = self.spark.createDataFrame(data_pandas)
@@ -165,13 +165,23 @@ class PySparkTest(unittest.TestCase):
 
 
     def test_get_event_type_metrics(self):
-        data_pandas = pd.DataFrame(self.ROW)
+        expected_out_pandas = pd.DataFrame(
+            {
+                'type': {0: 1, 1: 4, 2: 4, 3: 7, 4: 9, 5: 4, 6: 2},
+                'datehour': {0: '2021-01-23-10', 1: '2021-01-23-10', 2: '2021-01-23-10', 3: '2021-01-23-10', 4: '2021-01-23-11', 5: '2021-01-23-11', 6: '2021-01-23-11'},
+                'domain': {0: 'my-other-website.com', 1: 'www.domain-A.eu', 2: 'www.domain-A.eu', 3: 'www.mywebsite.com', 4: 'www.domain-A.eu', 5: 'www.mywebsite.com', 6: 'www.mywebsite.com'}, 
+                'country': {0: 'FR', 1: 'ES', 2: 'FR', 3: 'FR', 4: 'ES', 5: 'DE', 6: 'FR'}
+            }
+        )
 
-        # Turn the data into a Spark DataFrame
-        data_spark = self.spark.createDataFrame(data_pandas)
-        data_spark.createOrReplaceTempView("Events")
+        input_data = metrics.read_data(self.spark, "/Users/burkel/pyspark-proj/input/")
 
-        metric_frame = metrics.get_event_type_metrics('pageview', self.spark)
+        deduplicated_data = metrics.deduplicate_frame(input_data, 'id')
+        deduplicated_data.createOrReplaceTempView("Events")
+
+        actual_out_pandas = metrics.get_event_type_metrics('pageview', self.spark).toPandas()
+
+        assert_frame_equal(expected_out_pandas, actual_out_pandas)
 
 
 if __name__ == "__main__":
