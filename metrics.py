@@ -28,11 +28,13 @@ def deduplicate_frame(frame, column_name):
     return frame.drop_duplicates([column_name])
 
 
+# Find the distinct event types from the data.
 def get_distinct_types(spark):
     distinct_types = spark.sql("select distinct(type) from " + RAW_EVENTS).collect()
     return [row.type for row in distinct_types]
 
 
+# Returns a frame that contains count of the event type grouped by datehour, domain, and user country.
 def get_event_type_metrics(event_type_str, spark):
     return spark.sql(
         ' SELECT count(type) as count, datehour, domain, user[\'country\'] as country from Events \
@@ -41,6 +43,8 @@ def get_event_type_metrics(event_type_str, spark):
     )
 
 
+# Returns a frame that contains count of the event type grouped by datehour, domain, and user country.
+# Where the user has consented.
 def get_event_type_metrics_consented(event_type_str, spark):
     return spark.sql(
         'SELECT count(type) as count, datehour, domain, user[\'country\'] as country from EventsConsented \
@@ -49,6 +53,8 @@ def get_event_type_metrics_consented(event_type_str, spark):
     )
 
 
+# Returns a frame that contains the average views by day of a user grouped by datehour, domain, and user country.
+# Where the user has consented.
 def get_average_pageviews_per_user(event_type_str, spark):
     userpageviews = spark.sql(
                         'select user.id, datehour, domain, user[\'country\'] as country, count(type) as view \
