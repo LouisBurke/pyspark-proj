@@ -167,7 +167,7 @@ class PySparkTest(unittest.TestCase):
     def test_get_event_type_metrics(self):
         expected_out_pandas = pd.DataFrame(
             {
-                'type': {0: 1, 1: 4, 2: 4, 3: 7, 4: 9, 5: 4, 6: 2},
+                'count': {0: 1, 1: 4, 2: 4, 3: 7, 4: 9, 5: 4, 6: 2},
                 'datehour': {0: '2021-01-23-10', 1: '2021-01-23-10', 2: '2021-01-23-10', 3: '2021-01-23-10', 4: '2021-01-23-11', 5: '2021-01-23-11', 6: '2021-01-23-11'},
                 'domain': {0: 'my-other-website.com', 1: 'www.domain-A.eu', 2: 'www.domain-A.eu', 3: 'www.mywebsite.com', 4: 'www.domain-A.eu', 5: 'www.mywebsite.com', 6: 'www.mywebsite.com'}, 
                 'country': {0: 'FR', 1: 'ES', 2: 'FR', 3: 'FR', 4: 'ES', 5: 'DE', 6: 'FR'}
