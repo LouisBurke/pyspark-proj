@@ -1,11 +1,12 @@
 import unittest
 import logging
-
+import datetime
 import pandas as pd
 
 import findspark
 findspark.init()
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 from pandas.testing import assert_frame_equal
 
 import metrics
@@ -175,11 +176,54 @@ class PySparkTest(unittest.TestCase):
         )
 
         input_data = metrics.read_data(self.spark, "/Users/burkel/pyspark-proj/input/")
-
         deduplicated_data = metrics.deduplicate_frame(input_data, 'id')
         deduplicated_data.createOrReplaceTempView("Events")
 
         actual_out_pandas = metrics.get_event_type_metrics('pageview', self.spark).toPandas()
+
+        assert_frame_equal(expected_out_pandas, actual_out_pandas)
+
+    def test_get_event_type_metrics_consented(self):
+        expected_out_pandas = pd.DataFrame(
+            {
+                'count': {0: 2, 1: 3, 2: 3, 3: 3, 4: 3, 5: 2}, 
+                'datehour': {0: '2021-01-23-10', 1: '2021-01-23-10', 2: '2021-01-23-10', 3: '2021-01-23-11', 4: '2021-01-23-11', 5: '2021-01-23-11'}, 
+                'domain': {0: 'www.domain-A.eu', 1: 'www.domain-A.eu', 2: 'www.mywebsite.com', 3: 'www.domain-A.eu', 4: 'www.mywebsite.com', 5: 'www.mywebsite.com'}, 
+                'country': {0: 'ES', 1: 'FR', 2: 'FR', 3: 'ES', 4: 'DE', 5: 'FR'}
+            }
+        )
+
+        input_data = metrics.read_data(self.spark, "/Users/burkel/pyspark-proj/input/")
+        deduplicated_data = metrics.deduplicate_frame(input_data, 'id')
+        deduplicated_data.createOrReplaceTempView(metrics.RAW_EVENTS)
+
+        deduplicated_data_token = deduplicated_data.withColumn('token', deduplicated_data.user.token)
+        dedupded_with_consent = deduplicated_data_token.withColumn('consented', metrics.UDF_JSON_MANIP(col("token")))
+        dedupded_with_consent.createOrReplaceTempView('EventsConsented')
+
+        actual_out_pandas = metrics.get_event_type_metrics_consented('pageview', self.spark).toPandas()
+
+        assert_frame_equal(expected_out_pandas, actual_out_pandas)
+
+
+    def test_get_average_pageviews_per_user(self):
+        test_input_data = metrics.read_data(self.spark, "./test_input/")
+
+        input_data_with_token = test_input_data.withColumn('token', test_input_data.user.token)
+        input_data_with_token_and_consent = input_data_with_token.withColumn('consented', metrics.UDF_JSON_MANIP(col("token")))
+        input_data_with_token_and_consent.createOrReplaceTempView('EventsConsented')
+
+        expected_out_pandas = pd.DataFrame(
+            {
+                'id': {0: '1705c98b-367c-6d09-a30f-da9e6f4da701', 1: '1705c98b-367c-6d09-a30f-da9e6f4da701', 2: '1705c98b-367c-6d09-a30f-da9e6f4da701'}, 
+                'avg(view)': {0: 2.0, 1: 2.0, 2: 2.0}, 
+                'datehour': {0: datetime.date(2021, 1, 23), 1: datetime.date(2021, 1, 24), 2: datetime.date(2021, 1, 25)}, 
+                'domain': {0: 'www.domain-A.eu', 1: 'www.domain-A.eu', 2: 'www.domain-A.eu'}, 
+                'country': {0: 'FR', 1: 'FR', 2: 'FR'}
+            }
+        )
+
+        actual_out_pandas = metrics.get_average_pageviews_per_user('pageview', self.spark).toPandas()
 
         assert_frame_equal(expected_out_pandas, actual_out_pandas)
 

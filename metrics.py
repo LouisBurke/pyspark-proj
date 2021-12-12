@@ -3,8 +3,8 @@ findspark.init()
 
 from pyspark.sql import SparkSession
 
-from pyspark.sql.functions import udf,col
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, BooleanType
+from pyspark.sql.functions import udf, col
+from pyspark.sql.types import BooleanType
 
 from json import loads
 
@@ -64,7 +64,7 @@ def get_average_pageviews_per_user(event_type_str, spark):
 if __name__ == "__main__":
     spark = SparkSession.builder.getOrCreate()
 
-    input_data = read_data(spark, "/Users/burkel/pyspark-proj/input/")
+    input_data = read_data(spark, "./input/")
     deduplicated_data = deduplicate_frame(input_data, 'id')
     deduplicated_data.createOrReplaceTempView(RAW_EVENTS)
 
