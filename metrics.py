@@ -33,49 +33,56 @@ def get_distinct_types(spark):
     return [row.type for row in distinct_types]
 
 
-def get_event_type_metrics(type, spark):
+def get_event_type_metrics(event_type_str, spark):
     return spark.sql(
         ' SELECT count(type) as count, datehour, domain, user[\'country\'] as country from Events \
-          where type = "{event_type}" \
-          group by datehour, domain, country order by datehour, domain, country'.format(event_type = type)
+          where type = \'{event_type}\' \
+          group by datehour, domain, country order by datehour, domain, country'.format(event_type = event_type_str)
     )
+
+
+def get_event_type_metrics_consented(event_type_str, spark):
+    return spark.sql(
+        'SELECT count(type) as count, datehour, domain, user[\'country\'] as country from EventsConsented \
+         where type = \'{event_type}\' AND consented = \'true\' \
+         group by datehour, domain, country order by datehour, domain, country'.format(event_type = event_type_str)
+    )
+
+
+def get_average_pageviews_per_user(event_type_str, spark):
+    userpageviews = spark.sql(
+                        'select user.id, datehour, domain, user[\'country\'] as country, count(type) as view \
+                         from EventsConsented \
+                         where type = \'{event_type}\' \
+                         group by datehour, domain, country, user.id \
+                         order by datehour, user.id'.format(event_type = event_type_str)
+                    )
+    userpageviews.createOrReplaceTempView('views')
+    return spark.sql('select id, mean(view), datehour, domain, country from views group by datehour, domain, country, id')
 
 
 if __name__ == "__main__":
     spark = SparkSession.builder.getOrCreate()
 
     input_data = read_data(spark, "/Users/burkel/pyspark-proj/input/")
-
     deduplicated_data = deduplicate_frame(input_data, 'id')
-
     deduplicated_data.createOrReplaceTempView(RAW_EVENTS)
 
     distinct_types_list = get_distinct_types(spark)
 
-    for type in distinct_types_list:
-        print(type)
-        get_event_type_metrics(type, spark).show()
+    for event_type in distinct_types_list:
+        print(event_type)
+        get_event_type_metrics(event_type, spark).show()
 
     deduplicated_data_token = deduplicated_data.withColumn('token', deduplicated_data.user.token)
-
     dedupded_with_consent = deduplicated_data_token.withColumn('consented',  UDF_JSON_MANIP(col("token")))
-
     dedupded_with_consent.createOrReplaceTempView('EventsConsented')
 
-    print('Page views with consent.')
-    spark.sql(
-        'SELECT count(type) as count, datehour, domain, user[\'country\'] as country from EventsConsented \
-         where type = \'pageview\' AND consented = \'true\' \
-         group by datehour, domain, country order by datehour, domain, country'
-    ).show()
+    events_for_constent = ['pageview', 'consent.given']
 
-    print('Consent given with consent.')
-    spark.sql(
-        'SELECT count(type) as count, datehour, domain, user[\'country\'] as country from EventsConsented \
-         where type = \'consent.given\' AND consented = \'true\' \
-         group by datehour, domain, country order by datehour, domain, country'
-    ).show()
+    for event in events_for_constent:
+        print('With consent: ' + event)
+        get_event_type_metrics_consented(event, spark).show()
 
     print('avg_pageviews_per_user')
-    spark.sql('select user.id, datehour, domain, user[\'country\'] as country, count(type) as view from EventsConsented where type = \'pageview\' group by datehour, domain, country, user.id order by datehour, user.id').createOrReplaceTempView('userpageviews')
-    spark.sql('select id, mean(view), datehour, domain, country from userpageviews group by datehour, domain, country, id').show()
+    get_average_pageviews_per_user('pageview', spark).show()
