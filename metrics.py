@@ -54,7 +54,6 @@ def get_event_type_metrics_consented(event_type_str, spark):
 
 
 # Returns a frame that contains the average views by day of a user grouped by datehour, domain, and user country.
-# Where the user has consented.
 def get_average_pageviews_per_user(event_type_str, spark):
     userpageviews = spark.sql(
                         'select user.id, datehour, domain, user[\'country\'] as country, count(type) as view \
