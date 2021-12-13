@@ -16,3 +16,5 @@ To run the app:
 To run the unit tests:
 
 `python3 -m unittest metrics_test.py`
+
+My development environment was using ipython.
